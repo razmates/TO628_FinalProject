@@ -1,0 +1,149 @@
+---
+title: "Group Project: Open Explore"
+author: "The Team"
+date: "2024-03-28"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### **Stage 1 - Finding a Dataset:**
+#### For our upcoming assignment, we have identified the "HR_Analytics.csv" dataset that will serve as the foundation for our predictive modeling. The objective of our analysis is to anticipate attrition rates within a corporate environment.
+
+
+### **Stage 2 - Business Question:** 
+#### Our primary business question focuses on determining the precursors of employee attrition. By leveraging predictive analytics, we aim to isolate the variables most strongly correlated with attrition. The end goal is to empower HR departments with actionable insights to devise strategies that improve employee retention and prevent potential turnover. The analysis should not only provide a statistical model for predicting attrition but will also offer a qualitative assessment of the underlying reasons contributing to employee turnover. This  approach ensures a comprehensive understanding, facilitating the development of targeted interventions to maintain a stable and engaged workforce.
+
+
+### **Intermediate Deliverable #1:**
+
+#### **a. What Data are you using?** 
+##### We are using a dataset that includes various employee attributes such as Age, Business Travel frequency, Daily Rate, Department, Distance from Home, Education, Education Field, and Job Role, among others. This dataset is designed to capture a broad spectrum of factors that can influence an employee's decision to stay with or leave a company, providing a solid foundation for our analysis on attrition prediction.
+
+#### **b. What business question are you asking?**
+##### "What factors are most predictive of employee attrition, and how can we use this information to develop strategies to retain talent and reduce turnover within an organization?"
+
+#### **c. Preliminary Exploration and Cleaning of the Data**
+##### In the initial phase, we thoroughly explored and cleaned the dataset to prepare for predictive modeling of employee attrition:
+##### **- Understanding:** we familiarized ourselves with the dataset's structure and variables.
+##### **- Cleaning:** we addressed inconsistencies, missing values, and duplicates for data reliability.
+##### **- Variable Encoding:** categorical variables were encoded for statistical analysis.
+##### **- Data Splitting:** we divided the dataset into training and testing sets for unbiased model evaluation.
+
+```{r}
+
+# Loading libraries
+
+library(caret)
+library(janitor)
+
+# Reading the Data:
+retention <- read.csv("HR_Analytics.csv")
+str(retention)
+summary(retention)
+```
+
+```{r}
+
+## Cleaning the data:
+
+# Converting the columns into factors, as we want to treat them as qualitative variables with categories (e.g., "Yes" for employees who left and "No" for employees who stayed):
+
+retention$Attrition <- as.factor(retention$Attrition)
+retention$BusinessTravel <- as.factor(retention$BusinessTravel)
+retention$Department <- as.factor(retention$Department)
+retention$EducationField <- as.factor(retention$EducationField)
+retention$Gender <- as.factor(retention$Gender)
+retention$JobRole <- as.factor(retention$JobRole)
+retention$MaritalStatus <- as.factor(retention$MaritalStatus)
+retention$OverTime <- as.factor(retention$OverTime)
+
+# Removing columns from datasets as they are not relevant for the analysis (e.g., all the employees are over 18 y/o ):
+retention$Over18 <- NULL
+
+str(retention)
+summary(retention)
+
+# Over 18 changed to NULL as all data points are "yes"
+
+```
+
+```{r}
+## Split Data into Test and Train
+
+# Setting the proportion of the dataset to include 70% in the training set, the remaining of 30% will become part of the test set:
+train_ratio <- 0.7
+
+set.seed (12345)
+train_rows <- sample(1:nrow(retention), train_ratio*nrow(retention))
+
+retention_train <- retention[train_rows, ]
+retention_test <- retention[-train_rows, ]
+```
+
+#### **d. Preliminary Regression Model:** 
+##### **- Initial Modeling:** a logistic regression model was built to gauge the data's potential in explaining attrition.
+
+```{r}
+## Building the Model
+
+# Utilizing the Generalized Linear Model, by assigning the "Attrition" as the response variable, rest of variables being used as predictors:
+simplemodel <- glm(Attrition ~ ., data = retention_train, family = "binomial")
+summary(simplemodel)
+```
+
+```{r}
+## Making Predictions
+
+# Generating the predicted probability of Attrition
+predicted_prob <- predict(simplemodel, retention_test, type = "response")
+
+# Printing the predicted probability
+summary(predicted_prob)
+
+## Creating Separate File
+
+# Generating binary predictions based on the probability threshold. This binary prediction translates the logistic regression output into a definitive prediction of whether an employee is expected to leave or not:
+binpred <- ifelse(predicted_prob >= 0.5, "Yes", "No")
+
+# A new column is added to the retention_test which stores the probabilities of attrition predicted by the logistic regression model.
+retention_test$predicted_prob <- predicted_prob
+write.csv(retention_test, "retention_lr_pred.csv")
+```
+
+
+
+```{r}
+# Adjusting levels to the Positive Class
+binpred <- factor(binpred, levels = c("Yes", "No"))
+retention_test$Attrition <- factor(retention_test$Attrition, levels = c("Yes", "No"))
+
+# Double-checking levels in predicted and actual data
+levels(as.factor(binpred))
+levels(as.factor(retention_test$Attrition))
+
+```
+
+
+```{r}
+
+## Generating Confusion Matrix and Statistics
+
+confusionMatrix(as.factor(binpred), as.factor(retention_test$Attrition))
+```
+
+
+### **Preliminary Conclusions**: After analyzing the results of our preliminary regression model, we can draw some key insights regarding its performance in predicting employee attrition:
+
+
+#### **1. Accuracy & Precision:** the model demonstrates an accuracy of 87.3%, indicating that it correctly predicts the attrition status for the majority of cases in the test dataset. Additionally, the positive predictive value (PPV) of 54% suggests that when the model predicts an employee will leave, it is correct about 54% of the time.
+
+#### **2. Sensitivity & Specificity:** while the specificity is high at 93.96%, indicating the model's ability to correctly identify employees who are likely to stay, the sensitivity is relatively low at 45%. This means the model struggles to accurately identify employees who are likely to leave the organization.
+
+#### **3. Balanced Accuracy:** The balanced accuracy, which considers sensitivity and specificity, is 69.48%. This metric provides a more comprehensive understanding of the model's performance, reflecting its ability to discriminate between the two classes (attrition and retention) while accounting for class imbalance.
+
+#### **4. Next Steps:** Moving forward, it's crucial to acknowledge that while the preliminary regression model provides a good start, there is room for improvement. The relatively low sensitivity indicates that the model may be missing important factors contributing to attrition. Therefore, the next step involves further developing and refining prediction models such as KNN, ANN, DT, LR, SVM, RF, and SG Boost.
+
+#### **5. Potential impact of Alternative Models:** Each of these models offers unique advantages and may uncover different patterns within the data. For instance, decision trees (DT) may identify non-linear relationships between predictors and attrition, while neural networks (ANN) may capture complex interactions not evident in linear models. By systematically exploring these alternative models, we aim to enhance our understanding of the factors driving employee attrition and improve the accuracy of our predictions.
