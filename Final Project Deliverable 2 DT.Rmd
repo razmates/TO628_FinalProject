@@ -1,0 +1,74 @@
+---
+title: "Deliverable 2: Decision Tree"
+author: "The Team"
+date: "2024-04-10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+
+# Loading libraries
+
+library(caret)
+library(janitor)
+library(C50)
+
+# Reading the data
+
+retention <- read.csv("HR_Analytics.csv")
+str(retention)
+summary(retention)
+```
+
+```{r}
+
+## Cleaning the data
+
+# Converting the columns into factors
+
+retention$Attrition <- as.factor(retention$Attrition)
+retention$BusinessTravel <- as.factor(retention$BusinessTravel)
+retention$Department <- as.factor(retention$Department)
+retention$EducationField <- as.factor(retention$EducationField)
+retention$Gender <- as.factor(retention$Gender)
+retention$JobRole <- as.factor(retention$JobRole)
+retention$MaritalStatus <- as.factor(retention$MaritalStatus)
+retention$OverTime <- as.factor(retention$OverTime)
+
+# Removing columns from datasets as they are not relevant 
+
+retention$Over18 <- NULL
+
+str(retention)
+summary(retention)
+
+```
+
+```{r}
+# Split Data into Test and Train
+
+train_ratio <- 0.7
+
+set.seed (12345)
+train_rows <- sample(1:nrow(retention), train_ratio*nrow(retention))
+
+retention_train <- retention[train_rows, ]
+retention_test <- retention[-train_rows, ]
+```
+
+#### Level 1 Decision Tree
+```{r}
+dtmodel <- C5.0(as.factor(Attrition) ~., data = retention_train)
+dtpred <- predict(dtmodel, retention_test)
+
+write.csv(dtpred, "dt prediction.csv")
+
+confusionMatrix(as.factor(dtpred), as.factor(retention_test$Attrition))
+
+```
+
