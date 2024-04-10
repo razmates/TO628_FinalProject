@@ -1,0 +1,118 @@
+---
+title: "ANN Model"
+author: "Raz Mates"
+date: "2024-04-10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+
+# Loading libraries
+
+library(caret)
+library(janitor)
+library(neuralnet)
+
+# Reading the Data:
+retention <- read.csv("HR_Analytics.csv")
+str(retention)
+summary(retention)
+```
+
+## Data Processing
+
+```{r}
+# Removing columns from datasets as they are not relevant for the analysis (e.g., all the employees are over 18 y/o ):
+retention$Over18 <- NULL
+```
+
+## Variable Adjustment
+```{r}
+# Converting the columns into factors, as we want to treat them as qualitative variables with categories (e.g., "Yes" for employees who left and "No" for employees who stayed):
+
+retention$Attrition <- as.factor(retention$Attrition)
+retention$BusinessTravel <- as.factor(retention$BusinessTravel)
+retention$Department <- as.factor(retention$Department)
+retention$EducationField <- as.factor(retention$EducationField)
+retention$Gender <- as.factor(retention$Gender)
+retention$JobRole <- as.factor(retention$JobRole)
+retention$MaritalStatus <- as.factor(retention$MaritalStatus)
+retention$OverTime <- as.factor(retention$OverTime)
+str(retention)
+```
+
+## Conversion into dummy using madel.matrix command:
+```{r}
+retentionmm <- as.data.frame(model.matrix(~.-1,retention))
+retentionmm <- clean_names(retentionmm)
+
+str(retentionmm)
+```
+## Randomize & Normalize the dataset:
+```{r}
+## We are converting all of the factors into dummy variables as the input into the KNN model has to be numeric:
+
+## Set a seed for reproducibility:
+set.seed(12345)
+
+## Shuffle the rows of the dataframe
+retention_data_random <- retentionmm[sample(nrow(retentionmm)), ]
+retention_data_random1 <- retention_data_random[ ,-match("attrition_yes",names(retention_data_random))]
+
+normalize <- function(x) {
+  return ((x - min(x)) / (max(x) - min(x)))
+}
+
+retention_data_norm1 <- as.data.frame(lapply(retention_data_random1, normalize))
+retention_data_norm <- retention_data_norm1
+
+retention_data_norm$attrition_yes <- retention_data_random$attrition_yes
+
+summary(retention_data_norm)
+
+```
+
+## Generating Test and Train Data
+
+```{r}
+# Selection of 50% random rows will be performed:
+retention_ratio <- 0.5
+set.seed(12345)
+retention_data_set <- sample(1:nrow(retention_data_norm), retention_ratio*nrow(retention_data_norm))
+
+# Selection of data sets to be used, after normalization:
+retention_train_data_after_norm <- retention_data_norm[retention_data_set, ]
+retention_test_data_after_norm <- retention_data_norm[-retention_data_set, ]
+```
+
+## Building an ANN Model
+
+```{r}
+# Deleting NULL columns
+retention_train_data_after_norm$employee_count <- NULL
+retention_train_data_after_norm$standard_hours <- NULL
+
+# Building model
+retention_model_ann <- neuralnet(attrition_yes ~ ., data = retention_train_data_after_norm, hidden = 1, linear.output = FALSE)
+
+## Determinin prediction
+retention_model_ann_prediction <- compute(retention_model_ann, retention_test_data_after_norm[, -which(names(retention_test_data_after_norm) == "attrition_yes")])
+
+## Determinin actual
+retention_model_ann_actual <- retention_test_data_after_norm$attrition_yes
+
+# Conversion to binary clasification
+retention_model_ann_prediction <- ifelse(retention_model_ann_prediction$net.result >= 0.5, 1, 0)
+
+# Output results
+write.csv(retention_model_ann_prediction, "ann prediction.csv")
+
+## ANN Performance Evaluation
+confMatrix_ann <- confusionMatrix(as.factor(retention_model_ann_prediction), as.factor(retention_model_ann_actual), positive = "1")
+print(confMatrix_ann)
+
+```

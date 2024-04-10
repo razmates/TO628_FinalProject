@@ -38,6 +38,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(caret)
 library(janitor)
+library(neuralnet)
 
 # Reading the Data:
 retention <- read.csv("HR_Analytics.csv")
@@ -92,9 +93,7 @@ retention_test <- retention[-train_rows, ]
 # Utilizing the Generalized Linear Model, by assigning the "Attrition" as the response variable, rest of variables being used as predictors:
 simplemodel <- glm(Attrition ~ ., data = retention_train, family = "binomial")
 summary(simplemodel)
-```
 
-```{r}
 ## Making Predictions
 
 # Generating the predicted probability of Attrition
@@ -111,11 +110,7 @@ binpred <- ifelse(predicted_prob >= 0.5, "Yes", "No")
 # A new column is added to the retention_test which stores the probabilities of attrition predicted by the logistic regression model.
 retention_test$predicted_prob <- predicted_prob
 write.csv(retention_test, "retention_lr_pred.csv")
-```
 
-
-
-```{r}
 # Adjusting levels to the Positive Class
 binpred <- factor(binpred, levels = c("Yes", "No"))
 retention_test$Attrition <- factor(retention_test$Attrition, levels = c("Yes", "No"))
@@ -124,16 +119,91 @@ retention_test$Attrition <- factor(retention_test$Attrition, levels = c("Yes", "
 levels(as.factor(binpred))
 levels(as.factor(retention_test$Attrition))
 
-```
-
-
-```{r}
-
 ## Generating Confusion Matrix and Statistics
 
 confusionMatrix(as.factor(binpred), as.factor(retention_test$Attrition))
 ```
+### **Stage 2 - Answer that Business Question** 
 
+##### **Building the KNN Model (Shaanika)**
+```{r}
+
+```
+
+##### **Building the ANN Model (Raz)**
+```{r}
+
+# Assuming 'retention' is your dataset and it's already loaded
+
+# Step 1: Data Preprocessing
+# Convert 'Attrition' to a binary numeric variable: 1 for "Yes", 0 for "No"
+retention$Attrition <- as.numeric(retention$Attrition == "Yes")
+
+# Remove unnecessary columns, e.g., 'EmployeeCount'
+retention$EmployeeCount <- NULL
+
+# Normalize numeric predictors, excluding 'Attrition'
+normalize <- function(x) { (x - min(x, na.rm = TRUE)) / (max(x, na.rm = TRUE) - min(x, na.rm = TRUE)) }
+numeric_columns <- sapply(retention, is.numeric)
+numeric_columns["Attrition"] <- FALSE  # Exclude the target variable
+retention[numeric_columns] <- lapply(retention[numeric_columns], normalize)
+
+# Step 2: Splitting the Dataset
+set.seed(12345)  # For reproducibility
+indexes <- sample(1:nrow(retention), size = 0.7 * nrow(retention))
+
+
+retention_train <- retention[indexes, ]
+retention_test <- retention[-indexes, ]
+
+# Step 3: Model Training
+# Prepare the formula for the neuralnet model
+predictors_names <- setdiff(names(retention_train), "Attrition")
+formula <- as.formula(paste("Attrition ~", paste(predictors_names, collapse = " + ")))
+
+# Train the ANN model
+retention_model_ann <- neuralnet(formula, data = retention_train, hidden = 1, linear.output = FALSE)
+
+# Step 4: Making Predictions and Evaluating the Model
+# Making predictions on the test set
+test_predictions_ann <- compute(retention_model_ann, retention_test[, predictors_names])
+
+# Conversion to binary classification
+predicted_classes_ann <- ifelse(test_predictions_ann$net.result > 0.5, 1, 0)
+
+# Model evaluation
+actual_classes_ann <- retention_test$Attrition
+conf_matrix_ann <- confusionMatrix(as.factor(predicted_classes_ann), as.factor(actual_classes_ann), positive = "1")
+print(conf_matrix_ann)
+
+```
+
+
+##### **Building the DT Model (Raz)**
+```{r}
+
+```
+
+##### **Building the LR Model (Mark)**
+```{r}
+
+```
+
+##### **Building the SVM Model (Campbell)**
+```{r}
+
+
+```
+
+##### **Building the RF Model (Tom)**
+```{r}
+
+```
+
+##### **Building the SG Boost Model (Tom)**
+```{r}
+
+```
 
 ### **Preliminary Conclusions**: After analyzing the results of our preliminary regression model, we can draw some key insights regarding its performance in predicting employee attrition:
 

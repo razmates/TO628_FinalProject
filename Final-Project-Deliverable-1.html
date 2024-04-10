@@ -767,8 +767,9 @@ binpred &lt;- ifelse(predicted_prob &gt;= 0.5, &quot;Yes&quot;, &quot;No&quot;)
 
 # A new column is added to the retention_test which stores the probabilities of attrition predicted by the logistic regression model.
 retention_test$predicted_prob &lt;- predicted_prob
-write.csv(retention_test, &quot;retention_lr_pred.csv&quot;)</code></pre>
-<pre class="r"><code># Adjusting levels to the Positive Class
+write.csv(retention_test, &quot;retention_lr_pred.csv&quot;)
+
+# Adjusting levels to the Positive Class
 binpred &lt;- factor(binpred, levels = c(&quot;Yes&quot;, &quot;No&quot;))
 retention_test$Attrition &lt;- factor(retention_test$Attrition, levels = c(&quot;Yes&quot;, &quot;No&quot;))
 
