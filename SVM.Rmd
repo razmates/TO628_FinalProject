@@ -1,0 +1,81 @@
+---
+title: "FinalSVM"
+author: "Campbell"
+date: "2024-04-10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## SVM Model
+
+### Load Data and Libraries
+
+```{r}
+
+library(caret)
+library(janitor)
+library(kernlab)
+
+retention <- read.csv("HR_Analytics.csv")
+str(retention)
+summary(retention)
+
+retention$Attrition <- as.factor(retention$Attrition)
+retention$BusinessTravel <- as.factor(retention$BusinessTravel)
+retention$Department <- as.factor(retention$Department)
+retention$EducationField <- as.factor(retention$EducationField)
+retention$Gender <- as.factor(retention$Gender)
+retention$JobRole <- as.factor(retention$JobRole)
+retention$MaritalStatus <- as.factor(retention$MaritalStatus)
+retention$OverTime <- as.factor(retention$OverTime)
+
+retention$Over18 <- NULL
+
+str(retention)
+summary(retention)
+
+train_ratio <- 0.7
+
+set.seed (12345)
+train_rows <- sample(1:nrow(retention), train_ratio*nrow(retention))
+
+retention_train <- retention[train_rows, ]
+retention_test <- retention[-train_rows, ]
+
+```
+
+
+### Build Model and Predict
+
+```{r}
+
+retention_svm <- ksvm(Attrition ~ ., data = retention_train, kernel = "vanilladot")
+
+retention_svm_pred <- predict(retention_svm, retention_test)
+summary(retention_svm_pred)
+
+```
+
+### Evaluate Prediction
+
+```{r}
+
+confusionMatrix(as.factor(retention_svm_pred), as.factor(retention_test$Attrition))
+
+```
+
+### Write New Column and Create File
+
+```{r}
+
+retention_test$svm_pred <- retention_svm_pred
+write.csv(retention_svm_pred, "retention_svm_pred.csv")
+
+```
+
+
+
+
