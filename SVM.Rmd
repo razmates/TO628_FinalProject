@@ -72,7 +72,7 @@ confusionMatrix(as.factor(retention_svm_pred), as.factor(retention_test$Attritio
 ```{r}
 
 retention_test$svm_pred <- retention_svm_pred
-write.csv(retention_svm_pred, "retention_svm_pred.csv")
+write.csv(retention_test, "retention_svm_pred.csv")
 
 ```
 
